@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  hermes-agent:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-agent
+    ports:
+      - "8642:8642"
+    volumes:
+      - ./hermes_config:/opt/data
+    env_file:
+      - ./hermes_config/.env
+    restart: unless-stopped
+    command: ["gateway"]

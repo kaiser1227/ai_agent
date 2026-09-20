@@ -1,26 +1,80 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0f172a; /* slate-900 */
+  --foreground: #f8fafc; /* slate-50 */
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
+  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Custom Orb Animations */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 30px rgba(59, 130, 246, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes listening-wave {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(2); }
+}
+
+@keyframes thinking-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.orb-idle {
+  transition: all 0.5s ease-in-out;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.orb-listening {
+  animation: pulse-ring 2s infinite;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); /* Red glow for listening */
+}
+
+.orb-thinking {
+  animation: thinking-spin 3s linear infinite;
+  border-top-color: #3b82f6; /* Blue spinner */
+  border-right-color: transparent;
+  border-bottom-color: #3b82f6;
+  border-left-color: transparent;
+  border-width: 4px;
+  border-style: solid;
+  border-radius: 50%;
+}
+
+.orb-speaking {
+  animation: pulse-ring 1.5s infinite;
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.6); /* Green glow for speaking */
+}
+
+@keyframes png-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+.animate-png-bounce {
+  animation: png-bounce 0.15s infinite;
 }
