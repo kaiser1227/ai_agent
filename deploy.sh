@@ -27,12 +27,12 @@ ssh -i "$SSH_KEY_PATH" "$SSH_USER"@"$SERVER_IP" << EOF
     # 압축 해제할 폴더가 없으면 생성
     mkdir -p $REMOTE_DIR
     
-    # 압축 해제
-    tar -xzvf ~/ai_assistant_web.tar.gz -C $REMOTE_DIR
+    # 압축 해제 (sudo 권한 사용)
+    sudo tar -xzvf ~/ai_assistant_web.tar.gz -C $REMOTE_DIR
     
     # 해당 폴더로 이동하여 도커 다시 빌드 및 실행
     cd $REMOTE_DIR
-    docker compose up -d --build
+    sudo docker compose up -d --build
     
     # 쓰고 남은 압축 파일 삭제
     rm ~/ai_assistant_web.tar.gz

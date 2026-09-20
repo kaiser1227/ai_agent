@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Initialize OpenAI client with OpenRouter's base URL and API key
-const openai = new OpenAI({
-  apiKey: 'hermes-secret-key-12345',
-  baseURL: process.env.HERMES_API_URL || 'http://127.0.0.1:8642/v1',
-});
-
 export async function POST(req: Request) {
   try {
+    // Initialize OpenAI client inside the function to ensure it reads runtime environment variables on Vercel
+    const openai = new OpenAI({
+      apiKey: 'hermes-secret-key-12345',
+      baseURL: process.env.HERMES_API_URL || 'http://130.162.150.37:8642/v1',
+    });
+
     const { messages } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
