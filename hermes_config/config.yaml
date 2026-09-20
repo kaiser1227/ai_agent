@@ -1,6 +1,6 @@
 model:
   provider: openrouter
-  default: meta-llama/llama-3.1-8b-instruct
+  default: openai/gpt-4o-mini
 api_server:
   enabled: true
   port: 8642

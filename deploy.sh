@@ -30,6 +30,9 @@ ssh -i "$SSH_KEY_PATH" "$SSH_USER"@"$SERVER_IP" << EOF
     # 압축 해제 (sudo 권한 사용)
     sudo tar -xzvf ~/ai_assistant_web.tar.gz -C $REMOTE_DIR
     
+    # 도커가 파일을 읽을 수 있도록 권한 부여
+    sudo chmod -R 777 $REMOTE_DIR/hermes_config
+    
     # 해당 폴더로 이동하여 도커 다시 빌드 및 실행
     cd $REMOTE_DIR
     sudo docker compose up -d --build

@@ -14,8 +14,8 @@ export default function Home() {
   
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioQueueRef = useRef<string[]>([]);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -38,14 +38,6 @@ export default function Home() {
   }, [messages, state]);
 
   useEffect(() => {
-    // Preload TTS voices for Chrome
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
-
     // Initialize Speech Recognition
     if (typeof window !== "undefined") {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -79,8 +71,8 @@ export default function Home() {
     }
 
     return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
       }
     };
   }, []);
@@ -88,7 +80,10 @@ export default function Home() {
   const toggleListen = () => {
     // If speaking, stop speaking immediately when user interrupts
     if (state === "speaking") {
-      window.speechSynthesis.cancel();
+      audioQueueRef.current = [];
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+      }
       setState("idle");
       return;
     }
@@ -112,7 +107,10 @@ export default function Home() {
     if (!textInput.trim() || state === "thinking") return;
     
     // Interrupt any ongoing speech
-    window.speechSynthesis.cancel();
+    audioQueueRef.current = [];
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+    }
 
     const text = textInput.trim();
     setTextInput("");
@@ -149,13 +147,46 @@ export default function Home() {
     }
   };
 
-  const speakText = (text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) {
+  const playNextAudio = () => {
+    if (audioQueueRef.current.length === 0) {
       setState("idle");
       return;
     }
 
-    window.speechSynthesis.cancel(); // Cancel any ongoing speech
+    const nextText = audioQueueRef.current.shift();
+    if (!nextText) {
+      playNextAudio();
+      return;
+    }
+
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ko&q=${encodeURIComponent(nextText)}`;
+    const audio = new Audio(url);
+    currentAudioRef.current = audio;
+
+    audio.onplay = () => setState("speaking");
+    audio.onended = () => {
+      currentAudioRef.current = null;
+      playNextAudio();
+    };
+    audio.onerror = (e) => {
+      console.error("Audio playback error", e);
+      currentAudioRef.current = null;
+      playNextAudio(); // Skip to next if error
+    };
+
+    audio.play().catch(e => {
+      console.error("Audio play failed:", e);
+      currentAudioRef.current = null;
+      playNextAudio();
+    });
+  };
+
+  const speakText = (text: string) => {
+    // Interrupt any ongoing speech
+    audioQueueRef.current = [];
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+    }
 
     const cleanText = text.replace(/\*[^*]+\*/g, '').replace(/\([^)]+\)/g, '').trim();
     if (!cleanText) {
@@ -163,31 +194,28 @@ export default function Home() {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utteranceRef.current = utterance; // Prevent garbage collection
-    utterance.lang = "ko-KR";
+    // Google Translate TTS limits around 200 chars, so chunk by punctuation
+    // Splitting by '.', '?', '!' while preserving the punctuation
+    const chunks = cleanText.match(/[^.!?]+[.!?]*|\s/g)
+      ?.map(c => c.trim())
+      .filter(c => c.length > 0) || [cleanText];
+
+    // Combine short chunks so we don't make too many requests, limit ~150 chars
+    const combinedChunks: string[] = [];
+    let currentChunk = "";
     
-    const voices = window.speechSynthesis.getVoices();
-    // Try to find a premium Microsoft/Google Korean voice first, fallback to any Korean voice
-    const koVoice = voices.find(v => v.lang === 'ko-KR' || v.lang === 'ko_KR');
-    if (koVoice) {
-      utterance.voice = koVoice;
+    for (const chunk of chunks) {
+      if ((currentChunk + " " + chunk).length < 150) {
+        currentChunk += (currentChunk ? " " : "") + chunk;
+      } else {
+        if (currentChunk) combinedChunks.push(currentChunk);
+        currentChunk = chunk;
+      }
     }
-    
-    utterance.onstart = () => {
-      setState("speaking");
-    };
+    if (currentChunk) combinedChunks.push(currentChunk);
 
-    utterance.onend = () => {
-      setState("idle");
-    };
-
-    utterance.onerror = (e) => {
-      console.error("TTS Error", e);
-      setState("idle");
-    };
-
-    window.speechSynthesis.speak(utterance);
+    audioQueueRef.current = combinedChunks;
+    playNextAudio();
   };
 
   return (
